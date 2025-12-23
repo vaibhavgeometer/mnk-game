@@ -107,7 +107,8 @@ class GameApp:
         self.m = 10
         self.n = 10
         self.k = 5
-        self.ai_level = 0 # 0 = Human, 1-8 = AI Levels
+        self.p1_level = 0 # 0 = Human, 1-8 = AI Levels
+        self.p2_level = 0 # 0 = Human, 1-8 = AI Levels
         
         # Timers (in seconds)
         self.time_limit = DEFAULT_TIME_LIMIT 
@@ -117,7 +118,8 @@ class GameApp:
         
         # Game Objects
         self.board = None
-        self.ai = None
+        self.ai_p1 = None
+        self.ai_p2 = None
         self.ai_thread = None
         self.ai_move = None
         self.turn = 1
@@ -136,19 +138,19 @@ class GameApp:
         self.btn_quit = Button(cx - 100, cy + 90, 200, 50, "QUIT", self.font_ui, lambda: self.quit_game())
         
         # Settings UI
-        self.slider_m = Slider(cx - 150, 150, 300, 20, 3, 20, self.m, self.font_ui, "Rows (M)")
-        self.slider_n = Slider(cx - 150, 230, 300, 20, 3, 20, self.n, self.font_ui, "Cols (N)")
-        self.slider_k = Slider(cx - 150, 310, 300, 20, 3, 10, self.k, self.font_ui, "Win (K)")
+        self.slider_m = Slider(cx - 150, 120, 300, 20, 3, 20, self.m, self.font_ui, "Rows (M)")
+        self.slider_n = Slider(cx - 150, 190, 300, 20, 3, 20, self.n, self.font_ui, "Cols (N)")
+        self.slider_k = Slider(cx - 150, 260, 300, 20, 3, 10, self.k, self.font_ui, "Win (K)")
         
-        # AI Level Slider (0-8)
-        self.slider_ai = Slider(cx - 150, 390, 300, 20, 0, 8, self.ai_level, self.font_ui, "Opponent")
+        # Player Levels (0-8)
+        self.slider_p1 = Slider(cx - 150, 330, 300, 20, 0, 8, self.p1_level, self.font_ui, "Player 1")
+        self.slider_p2 = Slider(cx - 150, 400, 300, 20, 0, 8, self.p2_level, self.font_ui, "Player 2")
         
-        # Time Control
         # Time Control
         self.slider_time = Slider(cx - 150, 470, 300, 20, 1, 30, 5, self.font_ui, "Time (Mins)")
 
         # Music Volume (0-100)
-        self.slider_music = Slider(cx - 150, 550, 300, 20, 0, 100, 50, self.font_ui, "Music Volume")
+        self.slider_music = Slider(cx - 150, 540, 300, 20, 0, 100, 50, self.font_ui, "Music Volume")
 
         self.btn_back = Button(cx - 100, 650, 200, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
         
@@ -165,9 +167,9 @@ class GameApp:
         self.n = self.slider_n.get_value()
         self.k = self.slider_k.get_value()
         
-        # Update AI Selection
-        ai_val = self.slider_ai.get_value() # Returns int
-        self.ai_level = ai_val
+        # Update Player Selection
+        self.p1_level = self.slider_p1.get_value()
+        self.p2_level = self.slider_p2.get_value()
         
         self.time_limit = self.slider_time.get_value() * 60
         self.timer_p1 = self.time_limit
@@ -181,15 +183,15 @@ class GameApp:
         print(f"NEW GAME STARTED")
         print(f"Board Size: {self.m}x{self.n}")
         print(f"Win Condition: {self.k}-in-a-row")
-        print(f"Opponent: {'Human' if self.ai_level == 0 else f'AI Level {self.ai_level}'}")
+        print(f"Player 1: {'Human' if self.p1_level == 0 else f'AI Level {self.p1_level}'}")
+        print(f"Player 2: {'Human' if self.p2_level == 0 else f'AI Level {self.p2_level}'}")
         print(f"Time Limit: {self.slider_time.get_value()} mins")
         print(f"{'='*30}\n")
 
         self.board = MNKBoard(self.m, self.n, self.k)
-        if self.ai_level > 0:
-            self.ai = AI(self.ai_level)
-        else:
-            self.ai = None
+        
+        self.ai_p1 = AI(self.p1_level) if self.p1_level > 0 else None
+        self.ai_p2 = AI(self.p2_level) if self.p2_level > 0 else None
             
         self.turn = 1
         self.winner = None
@@ -220,7 +222,7 @@ class GameApp:
                     btn.handle_event(event)
             
             elif self.state == "SETTINGS":
-                for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_ai, self.slider_time, self.slider_music]:
+                for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_p1, self.slider_p2, self.slider_time, self.slider_music]:
                     slider.handle_event(event)
 
                 if self.btn_back.handle_event(event):
@@ -230,8 +232,10 @@ class GameApp:
             elif self.state == "GAME":
                 if self.winner is None and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     # Allow click only if Human Turn
-                    is_human_turn = (self.turn == 1) or (self.turn == 2 and not self.ai)
-                    if is_human_turn:
+                    is_p1_human = (self.turn == 1 and not self.ai_p1)
+                    is_p2_human = (self.turn == 2 and not self.ai_p2)
+                    
+                    if is_p1_human or is_p2_human:
                         self.handle_board_click(mouse_pos)
             
             elif self.state == "GAMEOVER":
@@ -281,18 +285,25 @@ class GameApp:
              else: print("Result: Draw")
              print("-" * 30)
 
-    def run_ai_thread(self, board_copy):
+    def run_ai_thread(self, board_copy, ai_instance, player_num):
         start_time = time.time()
         
         # Simple time management: Use 10% of remaining time, or at least 1.0s, max 20s
         # If timer is very low, play faster
-        remaining = self.timer_p2
-        limit = max(1.0, min(20.0, remaining * 0.1))
+        remaining = self.timer_p1 if player_num == 1 else self.timer_p2
         
+        # Base calculation
+        limit = max(0.5, min(20.0, remaining * 0.1))
+        
+        # Hard Safety Clamp: Never allow AI to use more time than we have left minus buffer
+        if limit > remaining - 0.5:
+             limit = max(0.1, remaining - 0.5)
+
         # If deeply low on time, go very fast
-        if remaining < 10: limit = 0.5
+        if remaining < 10: 
+            limit = min(limit, 0.5)
         
-        self.ai_move = self.ai.get_move(board_copy, 2, time_limit=limit)
+        self.ai_move = ai_instance.get_move(board_copy, player_num, time_limit=limit)
         elapsed = time.time() - start_time
         if elapsed < 0.5:
             time.sleep(0.5 - elapsed) 
@@ -318,11 +329,12 @@ class GameApp:
                     self.state = "GAMEOVER"
 
             # AI Logic
-            if self.winner is None and self.ai and self.turn == 2:
+            current_ai = self.ai_p1 if self.turn == 1 else self.ai_p2
+            if self.winner is None and current_ai:
                 if self.ai_thread is None:
                     # Start thinking
                     board_copy = copy.deepcopy(self.board)
-                    self.ai_thread = threading.Thread(target=self.run_ai_thread, args=(board_copy,), daemon=True)
+                    self.ai_thread = threading.Thread(target=self.run_ai_thread, args=(board_copy, current_ai, self.turn), daemon=True)
                     self.ai_thread.start()
                 
                 elif not self.ai_thread.is_alive():
@@ -330,12 +342,15 @@ class GameApp:
                     self.ai_thread = None
                     if self.ai_move:
                         r, c = self.ai_move
-                        if self.board.make_move(r, c, 2):
+                        # Only make move if it's still AI's turn (game check logic might have ended it?)
+                        # Actually check if move is valid
+                        if self.board.make_move(r, c, self.turn):
                              self.sound_manager.play('place')
-                             print(f"[AI Lvl {self.ai_level}] Move: ({r}, {c}) | Time Left: {int(self.timer_p2//60)}:{int(self.timer_p2%60):02d}")
+                             time_left = self.timer_p1 if self.turn == 1 else self.timer_p2
+                             print(f"[Player {self.turn} (AI Lvl {current_ai.level})] Move: ({r}, {c}) | Time Left: {int(time_left//60)}:{int(time_left%60):02d}")
                              self.check_game_end()
                              if not self.winner:
-                                 self.turn = 1
+                                 self.turn = 3 - self.turn
                                  self.render()
                     
                     self.ai_move = None
@@ -347,10 +362,14 @@ class GameApp:
         elif self.state == "SETTINGS":
             # Just reading value here to show labels
             pass 
-            # We want to force slider_ai label update before drawing
-            val = self.slider_ai.get_value()
-            if val == 0: self.slider_ai.custom_label = "Opponent: Human"
-            else: self.slider_ai.custom_label = f"Opponent: AI Lvl {val}"
+            # We want to force slider labels update before drawing
+            val1 = self.slider_p1.get_value()
+            if val1 == 0: self.slider_p1.custom_label = "Player 1: Human"
+            else: self.slider_p1.custom_label = f"Player 1: AI Lvl {val1}"
+
+            val2 = self.slider_p2.get_value()
+            if val2 == 0: self.slider_p2.custom_label = "Player 2: Human"
+            else: self.slider_p2.custom_label = f"Player 2: AI Lvl {val2}"
             
             # Same for time
             t_val = self.slider_time.get_value()
@@ -361,7 +380,7 @@ class GameApp:
             self.slider_music.custom_label = f"Music Volume: {mus_val}%"
             self.sound_manager.set_music_volume(mus_val / 100.0)
 
-            for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_ai, self.slider_time, self.slider_music]:
+            for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_p1, self.slider_p2, self.slider_time, self.slider_music]:
                 slider.update(mouse_pos)
             self.btn_back.update(mouse_pos)
         elif self.state == "GAMEOVER":
@@ -398,7 +417,8 @@ class GameApp:
         self.slider_m.draw(self.screen)
         self.slider_n.draw(self.screen)
         self.slider_k.draw(self.screen)
-        self.slider_ai.draw(self.screen)
+        self.slider_p1.draw(self.screen)
+        self.slider_p2.draw(self.screen)
         self.slider_time.draw(self.screen)
         self.slider_music.draw(self.screen)
         
@@ -411,7 +431,8 @@ class GameApp:
 
         # Status Text (Centered Top)
         status_text = f"Player {self.turn}'s Turn"
-        if self.ai and self.turn == 2: status_text = "AI Thinking..."
+        current_ai = self.ai_p1 if self.turn == 1 else self.ai_p2
+        if current_ai: status_text = f"Player {self.turn} (AI) Thinking..."
         text_surf = self.font_ui.render(status_text, True, COLORS.TEXT)
         self.screen.blit(text_surf, (SCREEN_WIDTH//2 - text_surf.get_width()//2, 30))
 
@@ -464,7 +485,9 @@ class GameApp:
         pygame.draw.rect(self.screen, COLORS.SURFACE, rect, border_radius=8)
         pygame.draw.rect(self.screen, color, rect, 2, border_radius=8)
         
-        name = "PLAYER 1" if player == 1 else ("AI" if self.ai else "PLAYER 2")
+        name = "PLAYER 1" if player == 1 else "PLAYER 2"
+        if player == 1 and self.ai_p1: name += " (AI)"
+        if player == 2 and self.ai_p2: name += " (AI)"
         name_surf = self.font_ui.render(name, True, COLORS.TEXT)
         time_surf = self.font_timer.render(time_str, True, color)
         
@@ -486,7 +509,7 @@ class GameApp:
             msg = "PLAYER 1 WINS!"
             color = COLORS.PRIMARY
         else:
-            msg = "PLAYER 2 WINS!" if not self.ai else "AI WINS!"
+            msg = "PLAYER 2 WINS!"
             color = COLORS.SECONDARY
             
         text = self.font_title.render(msg, True, color)
