@@ -112,6 +112,7 @@ class GameApp:
         
         # Timers (in seconds)
         self.time_limit = DEFAULT_TIME_LIMIT 
+        self.time_increment = 0
         self.timer_p1 = self.time_limit
         self.timer_p2 = self.time_limit
         self.last_frame_time = 0
@@ -148,11 +149,12 @@ class GameApp:
         
         # Time Control
         self.slider_time = Slider(cx - 150, 470, 300, 20, 1, 30, 5, self.font_ui, "Time (Mins)")
+        self.slider_increment = Slider(cx - 150, 540, 300, 20, 0, 60, 0, self.font_ui, "Increment (Sec)")
 
         # Music Volume (0-100)
-        self.slider_music = Slider(cx - 150, 540, 300, 20, 0, 100, 50, self.font_ui, "Music Volume")
+        self.slider_music = Slider(cx - 150, 610, 300, 20, 0, 100, 50, self.font_ui, "Music Volume")
 
-        self.btn_back = Button(cx - 100, 650, 200, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
+        self.btn_back = Button(cx - 100, 700, 200, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
         
         # Game Over UI
         self.btn_rematch = Button(cx - 100, cy + 80, 200, 50, "PLAY AGAIN", self.font_ui, lambda: self.start_game())
@@ -172,6 +174,7 @@ class GameApp:
         self.p2_level = self.slider_p2.get_value()
         
         self.time_limit = self.slider_time.get_value() * 60
+        self.time_increment = self.slider_increment.get_value()
         self.timer_p1 = self.time_limit
         self.timer_p2 = self.time_limit
         self.last_frame_time = time.time()
@@ -186,6 +189,7 @@ class GameApp:
         print(f"Player 1: {'Human' if self.p1_level == 0 else f'AI Level {self.p1_level}'}")
         print(f"Player 2: {'Human' if self.p2_level == 0 else f'AI Level {self.p2_level}'}")
         print(f"Time Limit: {self.slider_time.get_value()} mins")
+        print(f"Increment: {self.time_increment} sec")
         print(f"{'='*30}\n")
 
         self.board = MNKBoard(self.m, self.n, self.k)
@@ -222,7 +226,7 @@ class GameApp:
                     btn.handle_event(event)
             
             elif self.state == "SETTINGS":
-                for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_p1, self.slider_p2, self.slider_time, self.slider_music]:
+                for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_p1, self.slider_p2, self.slider_time, self.slider_increment, self.slider_music]:
                     slider.handle_event(event)
 
                 if self.btn_back.handle_event(event):
@@ -259,6 +263,11 @@ class GameApp:
             
             if self.board.make_move(r, c, self.turn):
                 self.sound_manager.play('place')
+                
+                # Apply increment
+                if self.turn == 1: self.timer_p1 += self.time_increment
+                else: self.timer_p2 += self.time_increment
+                
                 t_left = self.timer_p1 if self.turn == 1 else self.timer_p2
                 print(f"[Player {self.turn}] Move: ({r}, {c}) | Time Left: {int(t_left//60)}:{int(t_left%60):02d}")
                 self.check_game_end()
@@ -346,6 +355,11 @@ class GameApp:
                         # Actually check if move is valid
                         if self.board.make_move(r, c, self.turn):
                              self.sound_manager.play('place')
+                             
+                             # Apply increment
+                             if self.turn == 1: self.timer_p1 += self.time_increment
+                             else: self.timer_p2 += self.time_increment
+                             
                              time_left = self.timer_p1 if self.turn == 1 else self.timer_p2
                              print(f"[Player {self.turn} (AI Lvl {current_ai.level})] Move: ({r}, {c}) | Time Left: {int(time_left//60)}:{int(time_left%60):02d}")
                              self.check_game_end()
@@ -374,13 +388,17 @@ class GameApp:
             # Same for time
             t_val = self.slider_time.get_value()
             self.slider_time.custom_label = f"Time Limit: {t_val} Minutes"
+            
+            # Increment
+            inc_val = self.slider_increment.get_value()
+            self.slider_increment.custom_label = f"Increment: {inc_val} Seconds"
 
             # Music
             mus_val = self.slider_music.get_value()
             self.slider_music.custom_label = f"Music Volume: {mus_val}%"
             self.sound_manager.set_music_volume(mus_val / 100.0)
 
-            for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_p1, self.slider_p2, self.slider_time, self.slider_music]:
+            for slider in [self.slider_m, self.slider_n, self.slider_k, self.slider_p1, self.slider_p2, self.slider_time, self.slider_increment, self.slider_music]:
                 slider.update(mouse_pos)
             self.btn_back.update(mouse_pos)
         elif self.state == "GAMEOVER":
@@ -420,6 +438,7 @@ class GameApp:
         self.slider_p1.draw(self.screen)
         self.slider_p2.draw(self.screen)
         self.slider_time.draw(self.screen)
+        self.slider_increment.draw(self.screen)
         self.slider_music.draw(self.screen)
         
         self.btn_back.draw(self.screen)
