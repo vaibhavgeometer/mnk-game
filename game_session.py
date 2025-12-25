@@ -40,10 +40,11 @@ class GameSession:
         self.last_update_time = time.time()
         self.is_active = True
         self.move_history = []
+        self.events = []
         
     def update(self, now):
         """Standard update loop for this session."""
-        self.events = [] # Reset events for this frame
+        if not hasattr(self, 'events'): self.events = []
         
         if not self.is_active or self.winner is not None:
              return

@@ -14,6 +14,7 @@ from ui_components import Button, Slider, COLORS
 from tournament import RoundRobinTournament, KnockoutTournament
 from game_session import GameSession
 from records import RecordManager
+from elo_system import EloManager
 
 # Constants
 SCREEN_WIDTH = 1000
@@ -82,7 +83,12 @@ class SoundManager:
 class GameApp:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.width = SCREEN_WIDTH
+        self.height = SCREEN_HEIGHT
+        self.windowed_size = (self.width, self.height)
+        self.fullscreen = False
+        
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
         pygame.display.set_caption("MNK Game Deluxe - AI Edition")
         self.clock = pygame.time.Clock()
         
@@ -101,6 +107,7 @@ class GameApp:
 
         # Managers
         self.record_manager = RecordManager()
+        self.elo_manager = EloManager()
 
         # Application State
         self.state = "MENU"
@@ -125,7 +132,23 @@ class GameApp:
         self.init_ui()
 
     def init_ui(self):
-        cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
+        cx, cy = self.width // 2, self.height // 2
+        
+        # Save state if exists (preserve slider values during resize)
+        s_tp = self.slider_tour_players.get_value() if hasattr(self, 'slider_tour_players') else 4
+        s_tr = self.slider_tour_rounds.get_value() if hasattr(self, 'slider_tour_rounds') else 1
+        s_tpi = self.slider_tour_p_idx.get_value() if hasattr(self, 'slider_tour_p_idx') else 1
+        s_tpt = self.slider_tour_p_type.get_value() if hasattr(self, 'slider_tour_p_type') else 0
+        s_tpl = self.slider_tour_p_level.get_value() if hasattr(self, 'slider_tour_p_level') else 3
+        
+        s_m = self.slider_m.get_value() if hasattr(self, 'slider_m') else self.m
+        s_n = self.slider_n.get_value() if hasattr(self, 'slider_n') else self.n
+        s_k = self.slider_k.get_value() if hasattr(self, 'slider_k') else self.k
+        s_p1 = self.slider_p1.get_value() if hasattr(self, 'slider_p1') else self.p1_level
+        s_p2 = self.slider_p2.get_value() if hasattr(self, 'slider_p2') else self.p2_level
+        s_time = self.slider_time.get_value() if hasattr(self, 'slider_time') else 5
+        s_inc = self.slider_increment.get_value() if hasattr(self, 'slider_increment') else 0
+        s_vol = self.slider_music.get_value() if hasattr(self, 'slider_music') else 50
         
         # Menu
         self.btn_play = Button(cx - 100, cy - 120, 200, 50, "PLAY", self.font_ui, lambda: self.start_single_game())
@@ -135,36 +158,41 @@ class GameApp:
         self.btn_quit = Button(cx - 100, cy + 160, 200, 50, "QUIT", self.font_ui, lambda: self.quit_game())
         
         # Tournament Setup
-        self.slider_tour_players = Slider(cx - 150, cy - 180, 300, 20, 2, 8, 4, self.font_ui, "Total Players")
-        self.slider_tour_rounds = Slider(cx - 150, cy - 130, 300, 20, 1, 4, 1, self.font_ui, "Rounds")
+        self.slider_tour_players = Slider(cx - 150, cy - 180, 300, 20, 2, 8, s_tp, self.font_ui, "Total Players")
+        self.slider_tour_rounds = Slider(cx - 150, cy - 130, 300, 20, 1, 4, s_tr, self.font_ui, "Rounds")
         
-        self.btn_tour_type = Button(cx - 150, cy - 80, 300, 30, "Type: Round Robin", self.font_ui, lambda: self.toggle_tour_type())
+        tour_label = self.btn_tour_type.text if hasattr(self, 'btn_tour_type') else "Type: Round Robin"
+        self.btn_tour_type = Button(cx - 150, cy - 80, 300, 30, tour_label, self.font_ui, lambda: self.toggle_tour_type())
         
-        self.slider_tour_p_idx = Slider(cx - 150, cy + 10, 300, 20, 1, 4, 1, self.font_ui, "Edit Player")
-        self.slider_tour_p_type = Slider(cx - 150, cy + 60, 300, 20, 0, 1, 0, self.font_ui, "Type") 
-        self.slider_tour_p_level = Slider(cx - 150, cy + 110, 300, 20, 1, 8, 3, self.font_ui, "AI Level")
+        self.slider_tour_p_idx = Slider(cx - 150, cy + 10, 300, 20, 1, 4, s_tpi, self.font_ui, "Edit Player")
+        self.slider_tour_p_type = Slider(cx - 150, cy + 60, 300, 20, 0, 1, s_tpt, self.font_ui, "Type") 
+        self.slider_tour_p_level = Slider(cx - 150, cy + 110, 300, 20, 1, 8, s_tpl, self.font_ui, "AI Level")
         
         self.btn_tour_start = Button(cx - 100, cy + 180, 200, 50, "START", self.font_ui, lambda: self.start_tournament())
-        self.btn_back = Button(cx - 100, 700, 200, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
+        
+        back_y = self.height - 100
+        self.btn_back = Button(cx - 100, back_y, 200, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
         
         # Tournament Hub
-        self.btn_tour_play = Button(cx - 100, SCREEN_HEIGHT - 150, 200, 50, "PLAY PENDING", self.font_ui, lambda: self.play_pending_matches())
-        self.btn_tour_back = Button(cx - 100, 700, 200, 50, "EXIT TO MENU", self.font_ui, lambda: self.set_state("MENU"))
+        self.btn_tour_play = Button(cx - 100, self.height - 150, 200, 50, "PLAY PENDING", self.font_ui, lambda: self.play_pending_matches())
+        self.btn_tour_back = Button(cx - 100, back_y, 200, 50, "EXIT TO MENU", self.font_ui, lambda: self.set_state("MENU"))
         
         # Settings
-        self.slider_m = Slider(cx - 150, 120, 300, 20, 3, 32, self.m, self.font_ui, "Rows (M)")
-        self.slider_n = Slider(cx - 150, 190, 300, 20, 3, 32, self.n, self.font_ui, "Cols (N)")
-        self.slider_k = Slider(cx - 150, 260, 300, 20, 3, 32, self.k, self.font_ui, "Win (K)")
-        self.slider_p1 = Slider(cx - 150, 330, 300, 20, 0, 8, self.p1_level, self.font_ui, "Player 1")
-        self.slider_p2 = Slider(cx - 150, 400, 300, 20, 0, 8, self.p2_level, self.font_ui, "Player 2")
-        self.slider_time = Slider(cx - 150, 470, 300, 20, 1, 30, 5, self.font_ui, "Time (Mins)")
-        self.slider_increment = Slider(cx - 150, 540, 300, 20, 0, 60, 0, self.font_ui, "Increment (Sec)")
-        self.slider_music = Slider(cx - 150, 610, 300, 20, 0, 100, 50, self.font_ui, "Music Volume")
+        # Center settings block
+        sy = cy - 250
+        self.slider_m = Slider(cx - 150, sy, 300, 20, 3, 32, s_m, self.font_ui, "Rows (M)")
+        self.slider_n = Slider(cx - 150, sy + 70, 300, 20, 3, 32, s_n, self.font_ui, "Cols (N)")
+        self.slider_k = Slider(cx - 150, sy + 140, 300, 20, 3, 32, s_k, self.font_ui, "Win (K)")
+        self.slider_p1 = Slider(cx - 150, sy + 210, 300, 20, 0, 8, s_p1, self.font_ui, "Player 1")
+        self.slider_p2 = Slider(cx - 150, sy + 280, 300, 20, 0, 8, s_p2, self.font_ui, "Player 2")
+        self.slider_time = Slider(cx - 150, sy + 350, 300, 20, 1, 30, s_time, self.font_ui, "Time (Mins)")
+        self.slider_increment = Slider(cx - 150, sy + 420, 300, 20, 0, 60, s_inc, self.font_ui, "Increment (Sec)")
+        self.slider_music = Slider(cx - 150, sy + 490, 300, 20, 0, 100, s_vol, self.font_ui, "Music Volume")
         
         # Game Over (Single Game)
         self.btn_rematch = Button(cx - 100, cy + 80, 200, 50, "PLAY AGAIN", self.font_ui, lambda: self.start_single_game())
         self.btn_menu = Button(cx - 100, cy + 150, 200, 50, "MENU", self.font_ui, lambda: self.set_state("MENU"))
-        self.btn_sessions_back = Button(cx - 100, SCREEN_HEIGHT - 80, 200, 50, "RETURN", self.font_ui, lambda: self.return_from_game())
+        self.btn_sessions_back = Button(cx - 100, self.height - 80, 200, 50, "RETURN", self.font_ui, lambda: self.return_from_game())
         
     def set_state(self, state):
         self.state = state
@@ -269,9 +297,29 @@ class GameApp:
         
         for event in events:
             if event.type == pygame.QUIT: self.quit_game()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F11:
+                    self.fullscreen = not self.fullscreen
+                    if self.fullscreen:
+                        # Save current size before going full
+                        self.windowed_size = (self.width, self.height)
+                        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                    else:
+                        w, h = self.windowed_size
+                        self.screen = pygame.display.set_mode((w, h), pygame.RESIZABLE)
+                    self.width, self.height = self.screen.get_size()
+                    self.init_ui()
+
+            if event.type == pygame.VIDEORESIZE:
+                # Only update if not fullscreen (to avoid conflict if system sends resize events during fullscreen toggle)
+                if not self.fullscreen:
+                    self.width, self.height = event.w, event.h
+                    self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                    self.init_ui()
             
             if self.state == "MENU":
-                for b in [self.btn_play, self.btn_tournament, self.btn_settings, self.btn_quit]:
+                for b in [self.btn_play, self.btn_tournament, self.btn_history, self.btn_settings, self.btn_quit]:
                      b.handle_event(event)
 
             elif self.state == "TOURNAMENT_SETUP":
@@ -294,12 +342,16 @@ class GameApp:
 
                  
             elif self.state in ["GAME", "GAMEOVER"]:
+                handled = False
                 # If single game and over, handle buttons
                 if not self.tournament and self.sessions and self.sessions[0].winner is not None:
-                     for b in [self.btn_rematch, self.btn_menu]: b.handle_event(event)
+                     for b in [self.btn_rematch, self.btn_menu]: 
+                         if b.handle_event(event): handled = True
                 
                 elif self.tournament:
-                    self.btn_sessions_back.handle_event(event)
+                    if self.btn_sessions_back.handle_event(event): handled = True
+                
+                if handled: continue
 
                 # Handle clicks on boards
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -386,6 +438,8 @@ class GameApp:
                                  self.tournament.record_result(session.match_id, session.winner if session.winner > 0 else -1)
                              session.is_active = False # Stop updating
                      
+                     session.events = []
+                     
                      if session.winner is None: 
                          all_finished = False
 
@@ -416,6 +470,16 @@ class GameApp:
         }
         self.record_manager.add_game_record(rec)
 
+        # Update ELO if both are AI
+        p1_ai = session.p1_config.get('is_ai', False)
+        p2_ai = session.p2_config.get('is_ai', False)
+        
+        if p1_ai and p2_ai:
+            p1_lvl = session.p1_config.get('level')
+            p2_lvl = session.p2_config.get('level')
+            if p1_lvl and p2_lvl:
+                self.elo_manager.update_ratings(p1_lvl, p2_lvl, winner_val, session.m, session.n, session.k)
+
     def get_layout(self, num_sessions):
         # Returns list of (rect, cell_size) for each session
         # Layouts: 1=(1x1), 2=(2x1), 3-4=(2x2), 5-6=(3x2), 7-9=(3x3)
@@ -423,8 +487,8 @@ class GameApp:
         # Margin
         margin = 20
         header = 60
-        area_w = SCREEN_WIDTH - 2*margin
-        area_h = SCREEN_HEIGHT - 2*margin - header
+        area_w = self.width - 2*margin
+        area_h = self.height - 2*margin - header
         
         cols = 1
         rows = 1
@@ -558,7 +622,7 @@ class GameApp:
     # Reuse render helpers
     def render_menu(self):
         title = self.font_title.render(f"MNK GAME ({self.k}-in-row)", True, COLORS.PRIMARY)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 100))
+        title_rect = title.get_rect(center=(self.width // 2, 100))
         self.screen.blit(title, title_rect)
         self.btn_play.draw(self.screen)
         self.btn_tournament.draw(self.screen)
@@ -568,7 +632,7 @@ class GameApp:
         
     def render_history(self):
         title = self.font_title.render("GAME HISTORY", True, COLORS.ACCENT)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 60))
+        title_rect = title.get_rect(center=(self.width // 2, 60))
         self.screen.blit(title, title_rect)
         
         # Show last 13 games
@@ -609,7 +673,7 @@ class GameApp:
         
     def render_settings(self):
         title = self.font_title.render("SETTINGS", True, COLORS.ACCENT)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))
+        title_rect = title.get_rect(center=(self.width // 2, 80))
         self.screen.blit(title, title_rect)
         self.slider_m.draw(self.screen)
         self.slider_n.draw(self.screen)
@@ -623,12 +687,12 @@ class GameApp:
 
     def render_tournament_setup(self):
         title = self.font_title.render("TOURNAMENT SETUP", True, COLORS.ACCENT)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))
+        title_rect = title.get_rect(center=(self.width // 2, 80))
         self.screen.blit(title, title_rect)
         self.slider_tour_players.draw(self.screen)
         self.slider_tour_rounds.draw(self.screen)
         self.btn_tour_type.draw(self.screen)
-        pygame.draw.line(self.screen, COLORS.HIGHLIGHT, (100, 230), (SCREEN_WIDTH - 100, 230), 2)
+        pygame.draw.line(self.screen, COLORS.HIGHLIGHT, (100, 230), (self.width - 100, 230), 2)
         self.slider_tour_p_idx.draw(self.screen)
         self.slider_tour_p_type.draw(self.screen)
         if self.tour_configs[self.slider_tour_p_idx.get_value() - 1]['is_ai']:
@@ -638,7 +702,7 @@ class GameApp:
         
     def render_tournament_hub(self):
         title = self.font_title.render("TOURNAMENT STANDINGS", True, COLORS.ACCENT)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 60))
+        title_rect = title.get_rect(center=(self.width // 2, 60))
         self.screen.blit(title, title_rect)
         
         y = 120
@@ -662,7 +726,7 @@ class GameApp:
         self.btn_tour_back.draw(self.screen)
 
     def render_overlay(self):
-        s = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        s = pygame.Surface((self.width, self.height))
         s.set_alpha(150); s.fill((0,0,0))
         self.screen.blit(s, (0,0))
 
@@ -672,7 +736,7 @@ class GameApp:
         elif winner == 1: msg = "PLAYER 1 WINS!"; color = COLORS.PRIMARY
         else: msg = "PLAYER 2 WINS!"; color = COLORS.SECONDARY
         text = self.font_title.render(msg, True, color)
-        rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 60))
+        rect = text.get_rect(center=(self.width // 2, self.height // 2 - 60))
         pygame.draw.rect(self.screen, COLORS.SURFACE, rect.inflate(60, 40), border_radius=10)
         self.screen.blit(text, rect)
         self.btn_rematch.draw(self.screen)
@@ -708,7 +772,11 @@ class GameApp:
         self.slider_tour_p_idx.custom_label = f"Editing Config: Player {current_idx + 1}"
         is_ai = self.tour_configs[current_idx]['is_ai']
         self.slider_tour_p_type.custom_label = f"Type: {'AI' if is_ai else 'Human'}"
-        if is_ai: self.slider_tour_p_level.custom_label = f"AI Strength: Level {self.tour_configs[current_idx]['level']}"
+        self.slider_tour_p_type.custom_label = f"Type: {'AI' if is_ai else 'Human'}"
+        if is_ai: 
+            lvl = self.tour_configs[current_idx]['level']
+            elo = self.elo_manager.get_rating(lvl)
+            self.slider_tour_p_level.custom_label = f"AI Strength: Level {lvl} (ELO: {elo})"
         else: self.slider_tour_p_level.custom_label = "AI Strength: N/A"
 
     def update_settings_sliders(self, mouse_pos):
@@ -716,9 +784,12 @@ class GameApp:
             s.update(mouse_pos)
             
         val1 = self.slider_p1.get_value()
-        self.slider_p1.custom_label = f"Player 1: {'Human' if val1==0 else f'AI Lvl {val1}'}"
+        elo1 = f" ({self.elo_manager.get_rating(val1)})" if val1 > 0 else ""
+        self.slider_p1.custom_label = f"Player 1: {'Human' if val1==0 else f'AI Lvl {val1}{elo1}'}"
+        
         val2 = self.slider_p2.get_value()
-        self.slider_p2.custom_label = f"Player 2: {'Human' if val2==0 else f'AI Lvl {val2}'}"
+        elo2 = f" ({self.elo_manager.get_rating(val2)})" if val2 > 0 else ""
+        self.slider_p2.custom_label = f"Player 2: {'Human' if val2==0 else f'AI Lvl {val2}{elo2}'}"
         self.slider_time.custom_label = f"Time Limit: {self.slider_time.get_value()} Minutes"
         self.slider_increment.custom_label = f"Increment: {self.slider_increment.get_value()} Seconds"
         mus_val = self.slider_music.get_value()

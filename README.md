@@ -1,5 +1,7 @@
 # MNK Game Deluxe
 
+> ⚠️ **Disclaimer:** There are a lot of bugs in the game right now. They will be fixed later.
+
 A highly customizable, advanced version of the m,n,k-game (generalized Tic Tac Toe) built with Python and Pygame. Challenge yourself against sophisticated AI opponents or play with friends.
 
 ## Features
