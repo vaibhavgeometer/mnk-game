@@ -1,23 +1,10 @@
 import sys
 import os
-import subprocess
 import time
 import math
 import random
 import threading
 import copy
-
-# Bootstrap: Fix for Python 3.13t (Free-Threaded) incompatibility
-if "python3.13t" in sys.executable.lower() or "t.exe" in sys.executable.lower():
-    print("(!) Detected incompatible Python 3.13t. Restarting with standard Python...", file=sys.stderr)
-    standard_python = os.path.join(os.path.dirname(sys.executable), "python.exe")
-    if not os.path.exists(standard_python):
-        standard_python = "python"
-    try:
-        subprocess.check_call([standard_python, os.path.abspath(__file__)] + sys.argv[1:])
-        sys.exit(0)
-    except (OSError, subprocess.SubprocessError):
-        sys.exit(1)
 
 import pygame
 
@@ -30,9 +17,13 @@ from ui_components import Button, Slider, COLORS
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 800
 FPS = 60
-DEFAULT_TIME_LIMIT = 300 # 5 minutes in seconds
+DEFAULT_TIME_LIMIT = 300  # 5 minutes in seconds
 
 class SoundManager:
+    """
+    Handles loading and playing of sound effects and music.
+    Supports procedural generation of tones if numpy is available.
+    """
     def __init__(self):
         self.sounds = {}
         self.music_playing = False
@@ -42,7 +33,7 @@ class SoundManager:
             self.np = np
             self.use_generated = True
         except ImportError:
-            pass # Numpy optional
+            pass  # Numpy optional
 
         try:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
@@ -51,7 +42,10 @@ class SoundManager:
             print(f"Sound system error: {e}")
 
     def generate_defaults(self):
-        if not self.use_generated: return
+        """Generates default beep/boop sounds using numpy."""
+        if not self.use_generated:
+            return
+            
         def make_tone(freq, dur, vol=0.1):
             sample_rate = 44100
             n_samples = int(sample_rate * dur)
@@ -67,23 +61,33 @@ class SoundManager:
         self.sounds['timer_low'] = make_tone(1000, 0.1, 0.05)
 
     def play(self, name):
-        if name in self.sounds: self.sounds[name].play()
+        """Plays a sound by name if it exists."""
+        if name in self.sounds:
+            self.sounds[name].play()
     
     def set_music_volume(self, vol):
+        """Sets the background music volume."""
         try:
             pygame.mixer.music.set_volume(vol)
-        except: pass
+        except:
+            pass
 
     def load_music(self, path):
+        """Loads and plays background music from a file."""
         if os.path.exists(path):
             try:
                 pygame.mixer.music.load(path)
                 pygame.mixer.music.play(-1)
                 pygame.mixer.music.set_volume(0.5)
                 self.music_playing = True
-            except (pygame.error, FileNotFoundError): pass
+            except (pygame.error, FileNotFoundError):
+                pass
 
 class GameApp:
+    """
+    Main application class for the MNK Game.
+    Manages game state, rendering, and user input.
+    """
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -107,8 +111,8 @@ class GameApp:
         self.m = 10
         self.n = 10
         self.k = 5
-        self.p1_level = 0 # 0 = Human, 1-8 = AI Levels
-        self.p2_level = 0 # 0 = Human, 1-8 = AI Levels
+        self.p1_level = 0  # 0 = Human, 1-8 = AI Levels
+        self.p2_level = 0  # 0 = Human, 1-8 = AI Levels
         
         # Timers (in seconds)
         self.time_limit = DEFAULT_TIME_LIMIT 
@@ -131,6 +135,7 @@ class GameApp:
         self.init_ui()
 
     def init_ui(self):
+        """Initializes all UI buttons and sliders."""
         cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
         
         # Menu Buttons
@@ -161,10 +166,12 @@ class GameApp:
         self.btn_menu = Button(cx - 100, cy + 150, 200, 50, "MENU", self.font_ui, lambda: self.set_state("MENU"))
 
     def set_state(self, state):
+        """Switches the game state (MENU, GAME, SETTINGS, GAMEOVER)."""
         self.state = state
         self.sound_manager.play('click')
 
     def start_game(self):
+        """Prepares and starts a new game session with current settings."""
         self.m = self.slider_m.get_value()
         self.n = self.slider_n.get_value()
         self.k = self.slider_k.get_value()
@@ -203,10 +210,12 @@ class GameApp:
         self.set_state("GAME")
 
     def quit_game(self):
+        """Exits the application."""
         pygame.quit()
         sys.exit()
 
     def run(self):
+        """Main game loop."""
         while True:
             self.handle_input()
             self.update()
@@ -214,6 +223,7 @@ class GameApp:
             self.clock.tick(FPS)
 
     def handle_input(self):
+        """Processes user input events."""
         mouse_pos = pygame.mouse.get_pos()
         events = pygame.event.get()
         for event in events:
@@ -248,12 +258,16 @@ class GameApp:
                     btn.handle_event(event)
 
     def handle_board_click(self, pos):
+        """
+        Handles mouse clicks on the game board.
+        Translates screen coordinates to grid coordinates and executes a move.
+        """
         # Calculate grid parameters
         cell_size = min(600 // self.m, 800 // self.n, 60)
         board_w = cell_size * self.n
         board_h = cell_size * self.m
         start_x = (SCREEN_WIDTH - board_w) // 2
-        start_y = (SCREEN_HEIGHT - board_h) // 2 + 30 # Offset for header
+        start_y = (SCREEN_HEIGHT - board_h) // 2 + 30  # Offset for header
         
         if pos[0] >= start_x and pos[0] < start_x + board_w and \
            pos[1] >= start_y and pos[1] < start_y + board_h:
@@ -265,18 +279,20 @@ class GameApp:
                 self.sound_manager.play('place')
                 
                 # Apply increment
-                if self.turn == 1: self.timer_p1 += self.time_increment
-                else: self.timer_p2 += self.time_increment
+                if self.turn == 1:
+                    self.timer_p1 += self.time_increment
+                else:
+                    self.timer_p2 += self.time_increment
                 
                 t_left = self.timer_p1 if self.turn == 1 else self.timer_p2
-                print(f"[Player {self.turn}] Move: ({r}, {c}) | Time Left: {int(t_left//60)}:{int(t_left%60):02d}")
+                print(f"[Player {self.turn}] Move: ({r}, {c}) | Time Left: {int(t_left // 60)}:{int(t_left % 60):02d}")
                 self.check_game_end()
                 if not self.winner:
                     self.turn = 3 - self.turn
                     self.render()
-                    # Prepare for AI move in main loop
 
     def check_game_end(self):
+        """Checks if the game has ended via win or draw."""
         if self.board.winner:
             self.winner = self.turn
             self.win_reason = "Connect " + str(self.k)
@@ -295,6 +311,7 @@ class GameApp:
              print("-" * 30)
 
     def run_ai_thread(self, board_copy, ai_instance, player_num):
+        """Runs the AI search in a separate thread to prevent UI freezing."""
         start_time = time.time()
         
         # Simple time management: Use 10% of remaining time, or at least 1.0s, max 20s
@@ -318,6 +335,7 @@ class GameApp:
             time.sleep(0.5 - elapsed) 
 
     def update(self):
+        """Update loop called every frame."""
         now = time.time()
         dt = now - self.last_frame_time
         self.last_frame_time = now
@@ -374,8 +392,6 @@ class GameApp:
             for btn in [self.btn_play, self.btn_settings, self.btn_quit]:
                 btn.update(mouse_pos)
         elif self.state == "SETTINGS":
-            # Just reading value here to show labels
-            pass 
             # We want to force slider labels update before drawing
             val1 = self.slider_p1.get_value()
             if val1 == 0: self.slider_p1.custom_label = "Player 1: Human"
@@ -406,6 +422,7 @@ class GameApp:
                 btn.update(mouse_pos)
 
     def render(self):
+        """Main render function."""
         self.screen.fill(COLORS.BACKGROUND)
         if self.state == "MENU":
             self.render_menu()
@@ -420,6 +437,7 @@ class GameApp:
         pygame.display.flip()
 
     def render_menu(self):
+        """Renders the main menu."""
         title = self.font_title.render(f"MNK GAME ({self.k}-in-row)", True, COLORS.PRIMARY)
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 150))
         self.screen.blit(title, title_rect)
@@ -428,6 +446,7 @@ class GameApp:
         self.btn_quit.draw(self.screen)
 
     def render_settings(self):
+        """Renders the settings menu."""
         title = self.font_title.render("SETTINGS", True, COLORS.ACCENT)
         title_rect = title.get_rect(center=(SCREEN_WIDTH // 2, 80))
         self.screen.blit(title, title_rect)
@@ -444,6 +463,7 @@ class GameApp:
         self.btn_back.draw(self.screen)
 
     def render_game(self):
+        """Renders the game board and HUD."""
         # Draw Timers
         self.draw_timer(20, 20, 1, self.timer_p1)
         self.draw_timer(SCREEN_WIDTH - 220, 20, 2, self.timer_p2)
@@ -489,6 +509,7 @@ class GameApp:
                     pygame.draw.rect(self.screen, COLORS.ACCENT, rect, 2)
 
     def draw_timer(self, x, y, player, time_left):
+        """Draws a player's timer."""
         minutes = int(max(0, time_left) // 60)
         seconds = int(max(0, time_left) % 60)
         time_str = f"{minutes:02}:{seconds:02}"
@@ -514,12 +535,14 @@ class GameApp:
         self.screen.blit(time_surf, (x + 10, y + 28))
 
     def render_overlay(self):
+        """Draws a semi-transparent overlay."""
         s = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         s.set_alpha(150)
         s.fill((0,0,0))
         self.screen.blit(s, (0,0))
 
     def render_gameover(self):
+        """Renders the game over screen."""
         reason = self.win_reason if self.win_reason else ""
         if self.winner == 0:
             msg = "DRAW!"
@@ -547,7 +570,7 @@ class GameApp:
         
         self.btn_rematch.draw(self.screen)
         self.btn_menu.draw(self.screen)
-
+ 
 if __name__ == "__main__":
     app = GameApp()
     app.run()

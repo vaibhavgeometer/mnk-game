@@ -1,7 +1,9 @@
 import random
-import copy
 
 class MNKBoard:
+    """
+    Represents the MNK Game board (m-rows, n-cols, k-in-a-row).
+    """
     def __init__(self, m, n, k):
         self.m = m  # Rows
         self.n = n  # Cols
@@ -14,8 +16,13 @@ class MNKBoard:
         self.init_zobrist()
 
     def make_move(self, row, col, player):
+        """
+        Attempts to make a move for the given player at (row, col).
+        Returns True if successful, False if the cell is occupied.
+        """
         if self.board[row][col] != 0:
             return False
+            
         self.board[row][col] = player
         self.empty_cells.remove((row, col))
         self.occupied_cells.add((row, col))
@@ -28,20 +35,28 @@ class MNKBoard:
         return True
 
     def undo_move(self, row, col):
+        """
+        Undoes the move at (row, col).
+        """
         p = self.board[row][col]
         self.board[row][col] = 0
         self.empty_cells.add((row, col))
         self.occupied_cells.remove((row, col))
+        
         if p != 0:
             self.update_hash(row, col, p)
+            
         self.winner = None
-        # Note: last_move cannot be easily restored without a history stack in a full game,
-        # but for AI search we typically just unset.
+        # Note: last_move cannot be easily restored without a history stack.
 
     def is_full(self):
+        """Returns True if the board is full (Draw)."""
         return len(self.empty_cells) == 0
 
     def check_win(self, row, col, player):
+        """
+        Checks if the move at (row, col) triggered a win for the player.
+        """
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
         
         for dr, dc in directions:
@@ -67,38 +82,39 @@ class MNKBoard:
         return False
 
     def get_valid_moves(self):
-        # Return all empty cells
+        """Returns a list of all valid (empty) moves."""
         return list(self.empty_cells)
 
     def get_relevant_moves(self, radius=1):
-        # If board is empty, return center
+        """
+        Returns a subset of empty cells that are adjacent to occupied cells within a given radius.
+        Useful for optimization in AI search.
+        """
         if not self.occupied_cells:
             return [(self.m // 2, self.n // 2)]
         
         relevant = set()
-        # Use simple heuristic: if occupied are few, iterate occupied
-        # if empty are few, iterate empty?
-        # For now, iterating occupied is standard for "relevant moves" logic
         
         for r, c in self.occupied_cells:
             for dr in range(-radius, radius + 1):
                 for dc in range(-radius, radius + 1):
-                    if dr == 0 and dc == 0: continue
+                    if dr == 0 and dc == 0:
+                        continue
                     nr, nc = r + dr, c + dc
                     if 0 <= nr < self.m and 0 <= nc < self.n:
                         if self.board[nr][nc] == 0:
                             relevant.add((nr, nc))
         
         if not relevant:
-             # Fallback if somehow no relevant moves found but board not full 
             return list(self.empty_cells)
             
         return list(relevant)
 
     def init_zobrist(self):
-        # Initialize Zobrist hashing table
-        # 2 players, m rows, n cols
+        """Initializes values for Zobrist hashing."""
         self.zobrist_table = {}
+        # 2 players, m rows, n cols.
+        # We need a random number for each cell for each player.
         for r in range(self.m):
             for c in range(self.n):
                 for p in [1, 2]:
@@ -106,6 +122,7 @@ class MNKBoard:
         self.current_hash = 0
 
     def update_hash(self, row, col, player):
+        """Updates the board hash incrementally."""
         if hasattr(self, 'zobrist_table'):
             self.current_hash ^= self.zobrist_table[(row, col, player)]
 
