@@ -17,7 +17,20 @@ A highly customizable, advanced version of the m,n,k-game (generalized Tic Tac T
 - **Transposition Table**: Efficiently caches board states to speed up decision-making.
 - **Opening Book**: Includes optimized opening moves for common board sizes (e.g., Gomoku, Tic-Tac-Toe).
 
-### 🎨 Modern Experience
+### � Tournament Mode
+
+- **Flexible Formats**: Supports **Round Robin** and **Knockout** tournament styles.
+- **Bot Battles**: Simulate tournaments with mixed Human/AI participants.
+- **Simultaneous Matches**: Watch multiple bot games play out in parallel.
+- **Standings**: Real-time leaderboard tracking wins, losses, and points.
+
+### 📜 Game History
+
+- **Match Tracking**: Automatically records every game played.
+- **Move Logs**: Detailed move-by-move history with Algebraic Notation (e.g., A1, B3).
+- **Review**: View past results including winner, time played, and board size.
+
+### �🎨 Modern Experience
 
 - **Sleek UI**: Clean interface with interactive sliders, real-time timer updates, and dynamic visuals.
 - **Audio Experience**: Procedural sound generation for game events (moves, wins) and background music support.
@@ -45,9 +58,14 @@ python main.py
 ## Controls
 
 - **Mouse Left Click**: Place pieces, select menu options, and adjust sliders.
-- **Settings Menu**:
-  - **Rows/Cols**: Adjust board size (3-20).
-  - **Win (K)**: Set number of connected pieces needed to win.
+- **Menu Options**:
+  - **Play**: Start a single game.
+  - **Tournament**: Setup and run a tournament.
+  - **History**: View past game records.
+  - **Settings**: Configure game rules.
+- **Settings**:
+  - **Rows/Cols**: Adjust board size (3-32).
+  - **Win (K)**: Set number of connected pieces needed to win (up to 32).
   - **AI Levels**: Set strength for P1 and P2 separately (Level 0 = Human).
   - **Time/Increment**: Configure match timing.
   - **Music**: Adjust volume.
