@@ -1,73 +1,91 @@
 # MNK Game Deluxe
 
-> ⚠️ **Disclaimer:** There are a lot of bugs in the game right now. They will be fixed later.
+> **A Modern, Feature-Rich Implementation of the Generalized Tic-Tac-Toe (m,n,k-game)**
 
-A highly customizable, advanced version of the m,n,k-game (generalized Tic Tac Toe) built with Python and Pygame. Challenge yourself against sophisticated AI opponents or play with friends.
+![Game UI](https://img.shields.io/badge/Status-Active-success) ![Python](https://img.shields.io/badge/Made%20with-Python-blue) ![Pygame](https://img.shields.io/badge/Library-Pygame-red)
 
-## Features
+A highly customizable, competitive table-top game built from scratch in Python. It features a completely redesigned, **Lichess-inspired dark UI**, a powerful AI engine, and full game history tracking.
 
-### 🎮 Gameplay Customization
+---
 
-- **Flexible Board Rules**: Customize board dimensions ($M \times N$) and win condition ($K$-in-a-row).
-- **Match Configurations**: Adjustable time limits and **time increments** (Fischer timing).
-- **Game Modes**: Support for Human vs. Human, Human vs. AI, and AI vs. AI battles.
+## ✨ Features
 
-### 🤖 Advanced AI
+### 🎨 **New "Pro" User Interface**
 
-- **4 Difficulty Levels**:
-    - **Level 1**: Elo ~600 (Beginner)
-    - **Level 2**: Elo ~1200 (Intermediate)
-    - **Level 3**: Elo ~1800 (Advanced)
-    - **Level 4**: Max Strength (Deep Search)
-- **Modern Algorithms**: Powered by Minimax with Alpha-Beta Pruning, Iterative Deepening, and Zobrist Hashing.
-- **Transposition Table**: Efficiently caches board states to speed up decision-making.
-- **Opening Book**: Includes optimized opening moves for common board sizes.
+- **Dark Mode Aesthetic**: A sleek, distraction-free dark theme inspired by professional chess platforms.
+- **3-Panel Layout**:
+  - **Left**: Game Info & Chat placeholder.
+  - **Center**: The main board area.
+  - **Right**: Player cards, live timers with active indicators, and a scrollable move history list.
+- **Visual Cues**: Last move highlighting, winning line gold glow, and interactive ghost pieces.
 
-### 📜 Game History
+### 🎮 **Customizable Gameplay**
 
-- **Match Tracking**: Automatically records every game played.
-- **Move Logs**: Detailed move-by-move history with Algebraic Notation (e.g., A1, B3).
-- **Review**: View past results including winner, time played, and board size.
+- **Board Configuration**:
+  - **Rows ($M$) & Cols ($N$)**: Adjust grid size from **1x1** up to **32x32**.
+  - **Win Condition ($K$)**: Set the target line length from **1** to **7** (and beyond).
+- **Time Controls**: Full support for Fischer timing (Initial Time + Increment per move).
+- **Default Standards**: Pre-configured defaults for competitive play (15x15 board, 5-in-a-row, 3 min + 2 sec).
 
-### 🎨 Modern Experience
+### 🤖 **Adjustable AI Opponents**
 
-- **Sleek UI**: Clean interface with interactive sliders, real-time timer updates, and dynamic visuals.
-- **Procedural Audio**: Real-time sound generation for game events (moves, wins).
-- **Robustness**: Optimized for performance.
+Challenge the computer with 4 distinct difficulty levels:
 
-## Installation
+- **Level 1 (Beginner)**: Elo ~600. Good for learning the rules.
+- **Level 2 (Intermediate)**: Elo ~1200. Avoids simple blunders (Default opponent).
+- **Level 3 (Advanced)**: Elo ~1800. Strong tactical play.
+- **Level 4 (Master)**: Max strength using deep search, Alpha-Beta pruning, and Zobrist Hashing.
 
-1. **Clone the repository**
-2. **Install dependencies**:
+### 📜 **Robust System**
+
+- **Single-File Architecture**: The entire game engine, UI, and AI logic are consolidated into `main.py` for easy portability.
+- **Game History**: Every match is logged to `game_history.json`.
+- **Elo Rating System**: Tracks AI performance over time (stored in `elo_ratings.json`).
+
+---
+
+## 🚀 Installation & Setup
+
+1. **Clone the repository**:
+
+   ```bash
+   git clone <repository-url>
+   cd mnk-game
+   ```
+
+2. **Install Dependencies**:
+   You only need `pygame`. `numpy` is optional but recommended for better sound generation.
 
    ```bash
    pip install pygame numpy
    ```
 
-   _(Note: `numpy` is recommended for high-quality audio generation, but the game works without it.)_
+3. **Run the Game**:
+   ```bash
+   python main.py
+   ```
 
-## How to Run
+---
 
-Launch the game using Python:
+## 🕹️ Controls
 
-```bash
-python main.py
-```
+- **Mouse**: Entirely mouse-driven.
+  - **Click**: Place a piece, navigate menus, adjust sliders.
+  - **Drag**: Adjust sliders in the Settings menu.
+- **Keyboard**:
+  - **F11**: Toggle Fullscreen Mode.
 
-## Controls
+---
 
-- **Mouse Left Click**: Place pieces, select menu options, and adjust sliders.
-- **Menu Options**:
-  - **Play**: Start a single game.
-  - **History**: View past game records.
-  - **Settings**: Configure game rules.
-- **Settings**:
-  - **Rows/Cols**: Adjust board size (3-32).
-  - **Win (K)**: Set number of connected pieces needed to win (up to 32).
-  - **AI Levels**: Set strength for P1 and P2 separately (Level 0 = Human).
-  - **Time/Increment**: Configure match timing.
+## 🛠️ Technology Stack
 
-## Credits
+- **Language**: Python 3.12+
+- **Rendering**: Pygame Community Edition (CE)
+- **Audio**: Procedural sound generation (Sine/Square waves) via Numpy/Pygame.
 
-Developed by **Vaibhav**.
-Co-developed with **Antigravity**, an advanced AI coding assistant by Google Deepmind.
+---
+
+## 👥 Credits
+
+**Lead Developer**: Vaibhav  
+**AI Collaborator**: Antigravity (Google DeepMind)
