@@ -1,46 +1,47 @@
 # MNK Game Deluxe
 
-> **A Modern, Feature-Rich Implementation of the Generalized Tic-Tac-Toe (m,n,k-game)**
+> **A Professional, Feature-Rich Implementation of the Generalized Tic-Tac-Toe (m,n,k-game)**
 
-![Game UI](https://img.shields.io/badge/Status-Active-success) ![Python](https://img.shields.io/badge/Made%20with-Python-blue) ![Pygame](https://img.shields.io/badge/Library-Pygame-red)
+![Game UI](https://img.shields.io/badge/Status-Active-success) ![Python](https://img.shields.io/badge/Made%20with-Python-blue) ![Pygame](https://img.shields.io/badge/Library-Pygame--CE-red)
 
-A highly customizable, competitive table-top game built from scratch in Python. It features a completely redesigned, **Lichess-inspired dark UI**, a powerful AI engine, and full game history tracking.
+A highly customizable, competitive table-top game built with Python and Pygame. It features a premium **Lichess-inspired dark UI**, a powerful AI engine with 8 difficulty levels, dynamic Elo rating tracking, and a robust game history system.
 
 ---
 
 ## ✨ Features
 
-### 🎨 **New "Pro" User Interface**
+### 🎨 **Professional User Interface**
 
-- **Dark Mode Aesthetic**: A sleek, distraction-free dark theme inspired by professional chess platforms.
-- **3-Panel Layout**:
-  - **Left**: Game Info & Chat placeholder.
-  - **Center**: The main board area.
-  - **Right**: Player cards, live timers with active indicators, and a scrollable move history list.
-- **Visual Cues**: Last move highlighting, winning line gold glow, and interactive ghost pieces.
+- **Lichess-Inspired Design**: A sleek, distraction-free dark theme optimized for clarity and focus.
+- **3-Panel Strategic Layout**:
+  - **Left Panel**: Game metadata, current grid settings, and quick-access menu.
+  - **Center Panel**: The responsive game board with high-visibility pieces and winning line animations.
+  - **Right Panel**: Active player cards with live Fischer timers, Elo indicators, and a scrollable move list.
+- **Visual Excellence**: Subtle micro-animations, last-move highlighting, and interactive "ghost" pieces for effortless placement.
 
-### 🎮 **Customizable Gameplay**
+### 🤖 **8-Level AI Engine**
+
+Challenge a sophisticated AI using Alpha-Beta pruning, Zobrist Hashing, and Iterative Deepening. The AI strength scales linearly:
+
+- **Level 1 (Novice)**: ~300 Elo. Basic play, perfect for beginners.
+- **Levels 2-4 (Intermediate)**: ~600 to ~1200 Elo. Avoids obvious blunders and starts looking ahead.
+- **Levels 5-7 (Advanced)**: ~1500 to ~2100 Elo. Strong tactical awareness and positional play.
+- **Level 8 (Master)**: Max Strength. Deep search depth designed to challenge even experienced players.
+
+### 📈 **Elo & History System**
+
+- **Bot Ratings Graph**: Track the performance of all 8 AI levels via an integrated line graph.
+- **Dynamic Elo Tracking**: Watch AI ratings fluctuate based on their performance against each other.
+- **Move History**: Complete record of every match stored in `game_history.json`, with a scrollable in-game move list.
+- **Data Management**: Full control to reset history or recalibrate bot ratings at any time.
+
+### ⚙️ **Customizable Gameplay**
 
 - **Board Configuration**:
-  - **Rows ($M$) & Cols ($N$)**: Adjust grid size from **1x1** up to **32x32**.
-  - **Win Condition ($K$)**: Set the target line length from **1** to **7** (and beyond).
-- **Time Controls**: Full support for Fischer timing (Initial Time + Increment per move).
-- **Default Standards**: Pre-configured defaults for competitive play (15x15 board, 5-in-a-row, 3 min + 2 sec).
-
-### 🤖 **Adjustable AI Opponents**
-
-Challenge the computer with 4 distinct difficulty levels:
-
-- **Level 1 (Beginner)**: Elo ~600. Good for learning the rules.
-- **Level 2 (Intermediate)**: Elo ~1200. Avoids simple blunders (Default opponent).
-- **Level 3 (Advanced)**: Elo ~1800. Strong tactical play.
-- **Level 4 (Master)**: Max strength using deep search, Alpha-Beta pruning, and Zobrist Hashing.
-
-### 📜 **Robust System**
-
-- **Single-File Architecture**: The entire game engine, UI, and AI logic are consolidated into `main.py` for easy portability.
-- **Game History**: Every match is logged to `game_history.json`.
-- **Elo Rating System**: Tracks AI performance over time (stored in `elo_ratings.json`).
+  - **Grid Size ($M \times N$)**: Fully adjustable from **3x3** to **32x32**.
+  - **Win Condition ($K$)**: Set the target line length (e.g., Gomoku is 15x15, 5).
+- **Time Controls**: Professional Fischer timing (Initial Time + Increment per move).
+- **Portability**: Single-file architecture (`main.py`) makes it easy to run and share.
 
 ---
 
@@ -54,7 +55,8 @@ Challenge the computer with 4 distinct difficulty levels:
    ```
 
 2. **Install Dependencies**:
-   You only need `pygame`. `numpy` is optional but recommended for better sound generation.
+
+   While `pygame` is the only requirement, `numpy` is recommended for high-quality procedurally generated audio.
 
    ```bash
    pip install pygame numpy
@@ -71,8 +73,8 @@ Challenge the computer with 4 distinct difficulty levels:
 ## 🕹️ Controls
 
 - **Mouse**: Entirely mouse-driven.
-  - **Click**: Place a piece, navigate menus, adjust sliders.
-  - **Drag**: Adjust sliders in the Settings menu.
+  - **Click**: Place pieces, navigate menus, and adjust settings.
+  - **Sliders**: Drag to fine-tune board size, win condition, and time controls.
 - **Keyboard**:
   - **F11**: Toggle Fullscreen Mode.
 
@@ -81,12 +83,13 @@ Challenge the computer with 4 distinct difficulty levels:
 ## 🛠️ Technology Stack
 
 - **Language**: Python 3.12+
-- **Rendering**: Pygame Community Edition (CE)
-- **Audio**: Procedural sound generation (Sine/Square waves) via Numpy/Pygame.
+- **Framework**: Pygame Community Edition (CE)
+- **Audio**: Procedural Sine/Square wave generation via Numpy.
+- **Data**: JSON-based persistent storage for ratings and history.
 
 ---
 
 ## 👥 Credits
 
-**Lead Developer**: Vaibhav  
-**AI Collaborator**: Antigravity (Google DeepMind)
+**Lead Developer**: Vaibhav (@vaibhavgeometer)  
+**AI Technical Partner**: Antigravity (Google DeepMind)
