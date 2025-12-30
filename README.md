@@ -50,7 +50,7 @@ Challenge a sophisticated AI using Alpha-Beta pruning, Zobrist Hashing, and Iter
 1. **Clone the repository**:
 
    ```bash
-   git clone [<repository-url>](https://github.com/vaibhavgeometer/mnk-game.git)
+   git clone https://github.com/vaibhavgeometer/mnk-game.git
    cd mnk-game
    ```
 
