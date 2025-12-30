@@ -515,19 +515,31 @@ class AI:
             self.level = int(level)
         except (ValueError, TypeError):
             self.level = 1
-        self.level = max(1, min(4, self.level))
+        self.level = max(1, min(8, self.level))
         
         if self.level == 1: 
-            # Level 1: Elo ~600 (Greedy / Depth 1)
-            self.bot = IterativeBot(1, 0.5)
+            # Level 1: Strength ~300 Elo (Random + Instant Win/Block)
+            self.bot = IterativeBot(0, 0.5)
         elif self.level == 2: 
-            # Level 2: Elo ~1200 (Depth 3 - Avoids blunders, sees traps)
-            self.bot = IterativeBot(3, 1.0)
+            # Level 2: Strength ~600 Elo (Greedy / Depth 1)
+            self.bot = IterativeBot(1, 0.5)
         elif self.level == 3: 
-            # Level 3: Elo ~1800 (Depth 6 - Strong play)
-            self.bot = IterativeBot(6, 3.0)
+            # Level 3: Strength ~900 Elo (Depth 2 - Basic lookahead)
+            self.bot = IterativeBot(2, 0.8)
         elif self.level == 4: 
-            # Level 4: Max Strength (Deep search)
+            # Level 4: Strength ~1200 Elo (Depth 3 - Avoids blunders)
+            self.bot = IterativeBot(3, 1.0)
+        elif self.level == 5: 
+            # Level 5: Strength ~1500 Elo (Depth 4 - Solid play)
+            self.bot = IterativeBot(4, 1.5)
+        elif self.level == 6: 
+            # Level 6: Strength ~1800 Elo (Depth 5 - Strong play)
+            self.bot = IterativeBot(5, 2.0)
+        elif self.level == 7: 
+            # Level 7: Strength ~2100 Elo (Depth 6 - Advanced)
+            self.bot = IterativeBot(6, 3.0)
+        elif self.level == 8: 
+            # Level 8: Max Strength (Deep search)
             self.bot = IterativeBot(40, 10.0)
         else:
             self.bot = IterativeBot(1, 0.5)
@@ -552,8 +564,8 @@ class EloManager:
             except:
                 self.ratings = {}
         
-        defaults = {'1': 600, '2': 1200, '3': 1800, '4': 2400}
-        for i in range(1, 5):
+        defaults = {str(i): 2000 for i in range(1, 9)}
+        for i in range(1, 9):
             key = str(i)
             if key not in self.ratings:
                 self.ratings[key] = defaults.get(key, INITIAL_ELO)
@@ -599,6 +611,12 @@ class EloManager:
         self.ratings[str(p2_level)] = new_r2
         self.save_ratings()
 
+    def reset_ratings(self):
+        self.ratings = {}
+        defaults = {str(i): 2000 for i in range(1, 9)}
+        self.ratings = defaults
+        self.save_ratings()
+
 class RecordManager:
     """Handles saving and loading of game records."""
     def __init__(self):
@@ -623,6 +641,10 @@ class RecordManager:
     def add_game_record(self, record):
         record['timestamp'] = record.get('timestamp', time.time())
         self.history["games"].append(record)
+        self.save_history()
+
+    def clear_history(self):
+        self.history = {"games": []}
         self.save_history()
 
 class SoundManager:
@@ -858,27 +880,45 @@ class GameApp:
         s_m = self.slider_m.get_value() if hasattr(self, 'slider_m') else self.m
         s_n = self.slider_n.get_value() if hasattr(self, 'slider_n') else self.n
         s_k = self.slider_k.get_value() if hasattr(self, 'slider_k') else self.k
-        s_p1 = min(4, self.slider_p1.get_value()) if hasattr(self, 'slider_p1') else min(4, self.p1_level)
-        s_p2 = min(4, self.slider_p2.get_value()) if hasattr(self, 'slider_p2') else min(4, self.p2_level)
+        s_p1 = min(8, self.slider_p1.get_value()) if hasattr(self, 'slider_p1') else min(8, self.p1_level)
+        s_p2 = min(8, self.slider_p2.get_value()) if hasattr(self, 'slider_p2') else min(8, self.p2_level)
         s_time = self.slider_time.get_value() if hasattr(self, 'slider_time') else 3
         s_inc = self.slider_increment.get_value() if hasattr(self, 'slider_increment') else 2
 
         
         # Menu Buttons (Centered and evenly spaced)
-        btn_start_y = cy - 110
-        btn_gap = 70
+        # Menu Buttons (Centered and evenly spaced)
+        btn_start_y = cy - 130  # Moved up to fit more buttons
+        btn_gap = 60
         self.btn_play = Button(cx - 100, btn_start_y, 200, 50, "PLAY", self.font_ui, lambda: self.start_single_game())
         self.btn_history = Button(cx - 100, btn_start_y + btn_gap, 200, 50, "HISTORY", self.font_ui, lambda: self.set_state("HISTORY"))
-        self.btn_settings = Button(cx - 100, btn_start_y + btn_gap*2, 200, 50, "SETTINGS", self.font_ui, lambda: self.set_state("SETTINGS"))
-        self.btn_quit = Button(cx - 100, btn_start_y + btn_gap*3, 200, 50, "QUIT", self.font_ui, lambda: self.quit_game())
+        self.btn_ratings = Button(cx - 100, btn_start_y + btn_gap*2, 200, 50, "BOT RATINGS", self.font_ui, lambda: self.set_state("RATINGS"))
+        self.btn_settings = Button(cx - 100, btn_start_y + btn_gap*3, 200, 50, "SETTINGS", self.font_ui, lambda: self.set_state("SETTINGS"))
+        self.btn_quit = Button(cx - 100, btn_start_y + btn_gap*4, 200, 50, "QUIT", self.font_ui, lambda: self.quit_game())
+        
         self.btn_back = Button(cx - 100, self.height - 100, 200, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
+
+        # History and Ratings Action Buttons
+        button_width = 160
+        gap = 20
+        total_width = button_width * 2 + gap
+        start_x = cx - total_width // 2
+        
+        self.btn_hist_back = Button(start_x, self.height - 100, button_width, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
+        self.btn_hist_reset = Button(start_x + button_width + gap, self.height - 100, button_width, 50, "RESET", self.font_ui, lambda: self.reset_history_action(), bg_color=(180, 60, 60))
+
+        self.btn_ratings_back = Button(start_x, self.height - 100, button_width, 50, "BACK", self.font_ui, lambda: self.set_state("MENU"))
+        self.btn_ratings_reset = Button(start_x + button_width + gap, self.height - 100, button_width, 50, "RESET", self.font_ui, lambda: self.reset_ratings_action(), bg_color=(180, 60, 60))
+        
+        # In-Game Menu Button
+        self.btn_game_menu = Button(30, 200, 200, 40, "MENU", self.font_ui, lambda: self.set_state("MENU"), bg_color=COLORS.SURFACE_LIGHT)
         
         sy = cy - 250
         self.slider_m = Slider(cx - 150, sy, 300, 20, 1, 32, s_m, self.font_ui, "Rows (M)")
         self.slider_n = Slider(cx - 150, sy + 70, 300, 20, 1, 32, s_n, self.font_ui, "Cols (N)")
         self.slider_k = Slider(cx - 150, sy + 140, 300, 20, 1, 7, s_k, self.font_ui, "Win (K)")
-        self.slider_p1 = Slider(cx - 150, sy + 210, 300, 20, 0, 4, s_p1, self.font_ui, "Player 1")
-        self.slider_p2 = Slider(cx - 150, sy + 280, 300, 20, 0, 4, s_p2, self.font_ui, "Player 2")
+        self.slider_p1 = Slider(cx - 150, sy + 210, 300, 20, 0, 8, s_p1, self.font_ui, "Player 1")
+        self.slider_p2 = Slider(cx - 150, sy + 280, 300, 20, 0, 8, s_p2, self.font_ui, "Player 2")
         self.slider_time = Slider(cx - 150, sy + 350, 300, 20, 1, 30, s_time, self.font_ui, "Time (Mins)")
         self.slider_increment = Slider(cx - 150, sy + 420, 300, 20, 0, 60, s_inc, self.font_ui, "Increment (Sec)")
 
@@ -888,6 +928,14 @@ class GameApp:
         
     def set_state(self, state):
         self.state = state
+        
+    def reset_history_action(self):
+        self.record_manager.clear_history()
+        self.sound_manager.play('click')
+        
+    def reset_ratings_action(self):
+        self.elo_manager.reset_ratings()
+        self.sound_manager.play('click')
         
     def quit_game(self):
         pygame.quit()
@@ -901,8 +949,21 @@ class GameApp:
         self.time_increment = self.slider_increment.get_value()
         if self.k > max(self.m, self.n): self.k = max(self.m, self.n)
         
-        p1_config = {'name': 'Player 1', 'is_ai': self.slider_p1.get_value() > 0, 'level': self.slider_p1.get_value()}
-        p2_config = {'name': 'Player 2', 'is_ai': self.slider_p2.get_value() > 0, 'level': self.slider_p2.get_value()}
+        p1_lvl = self.slider_p1.get_value()
+        p2_lvl = self.slider_p2.get_value()
+        
+        p1_name = "Player 1"
+        if p1_lvl > 0: 
+            r = self.elo_manager.get_rating(p1_lvl)
+            p1_name = f"AI ({r})"
+        
+        p2_name = "Player 2"
+        if p2_lvl > 0: 
+            r = self.elo_manager.get_rating(p2_lvl)
+            p2_name = f"AI ({r})"
+
+        p1_config = {'name': p1_name, 'is_ai': p1_lvl > 0, 'level': p1_lvl}
+        p2_config = {'name': p2_name, 'is_ai': p2_lvl > 0, 'level': p2_lvl}
         
         session = GameSession(self.m, self.n, self.k, p1_config, p2_config, self.time_limit, self.time_increment)
         self.sessions = [session]
@@ -939,7 +1000,7 @@ class GameApp:
                     self.init_ui()
             
             if self.state == "MENU":
-                for b in [self.btn_play, self.btn_history, self.btn_settings, self.btn_quit]:
+                for b in [self.btn_play, self.btn_history, self.btn_ratings, self.btn_settings, self.btn_quit]:
                      b.handle_event(event)
 
             elif self.state == "SETTINGS":
@@ -948,10 +1009,17 @@ class GameApp:
                  self.btn_back.handle_event(event)
             
             elif self.state == "HISTORY":
-                 self.btn_back.handle_event(event)
+                 self.btn_hist_back.handle_event(event)
+                 self.btn_hist_reset.handle_event(event)
+                 
+            elif self.state == "RATINGS":
+                 self.btn_ratings_back.handle_event(event)
+                 self.btn_ratings_reset.handle_event(event)
 
             elif self.state in ["GAME", "GAMEOVER"]:
                 handled = False
+                if self.btn_game_menu.handle_event(event): handled = True
+                
                 if self.sessions and self.sessions[0].winner is not None:
                      for b in [self.btn_rematch, self.btn_menu]: 
                          if b.handle_event(event): handled = True
@@ -980,11 +1048,16 @@ class GameApp:
             self.update_settings_sliders(pygame.mouse.get_pos())
             self.btn_back.update(pygame.mouse.get_pos())
         elif self.state == "MENU":
-            for b in [self.btn_play, self.btn_history, self.btn_settings, self.btn_quit]: 
+            for b in [self.btn_play, self.btn_history, self.btn_ratings, self.btn_settings, self.btn_quit]: 
                 b.update(pygame.mouse.get_pos())
         elif self.state == "HISTORY":
-             self.btn_back.update(pygame.mouse.get_pos())
+             self.btn_hist_back.update(pygame.mouse.get_pos())
+             self.btn_hist_reset.update(pygame.mouse.get_pos())
+        elif self.state == "RATINGS":
+             self.btn_ratings_back.update(pygame.mouse.get_pos())
+             self.btn_ratings_reset.update(pygame.mouse.get_pos())
         elif self.state == "GAME" or self.state == "GAMEOVER":
+             self.btn_game_menu.update(pygame.mouse.get_pos())
              all_finished = True
              for session in self.sessions:
                  if session.is_active:
@@ -1083,6 +1156,8 @@ class GameApp:
             txt = self.font_small.render(line, True, COLORS.TEXT)
             self.screen.blit(txt, (left_rect.x + 15, left_rect.y + y_off))
             y_off += 25
+            
+        self.btn_game_menu.draw(self.screen)
             
         # Chat Placeholder (Visual only)
         chat_y = self.height - 250
@@ -1196,6 +1271,8 @@ class GameApp:
             self.render_settings()
         elif self.state == "HISTORY":
             self.render_history()
+        elif self.state == "RATINGS":
+            self.render_ratings()
         elif self.state in ["GAME", "GAMEOVER"]:
             layout = self.get_layout(len(self.sessions))
             # Since we focused on single game view, we typically have 1 session
@@ -1305,38 +1382,130 @@ class GameApp:
         pygame.draw.rect(self.screen, COLORS.SURFACE, panel_rect, border_radius=15)
         pygame.draw.rect(self.screen, COLORS.HIGHLIGHT, panel_rect, width=2, border_radius=15)
         
-        for b in [self.btn_play, self.btn_history, self.btn_settings, self.btn_quit]: b.draw(self.screen)
+        for b in [self.btn_play, self.btn_history, self.btn_ratings, self.btn_settings, self.btn_quit]: b.draw(self.screen)
         
     def render_history(self):
         title = self.font_title.render("GAME HISTORY", True, COLORS.ACCENT)
         self.screen.blit(title, title.get_rect(center=(self.width // 2, 60)))
         
-        recents = self.record_manager.history.get('games', [])[-13:]
+        recents = self.record_manager.history.get('games', [])[-12:]
         recents.reverse()
         
+        # Table Layout
+        headers = ["Time", "Player 1", "Player 2", "Result", "Grid", "Moves"]
+        col_widths = [80, 200, 200, 100, 120, 80]
+        total_w = sum(col_widths)
+        start_x = (self.width - total_w) // 2
         y = 120
-        headers = ["Time", "P1", "P2", "Winner", "Size", "Moves"]
-        x_positions = [50, 200, 350, 500, 650, 750]
+        row_h = 40
         
+        # Draw Header
+        pygame.draw.rect(self.screen, COLORS.SURFACE_LIGHT, (start_x, y, total_w, row_h), border_radius=5)
+        curr_x = start_x
         for i, h in enumerate(headers):
-             self.screen.blit(self.font_ui.render(h, True, COLORS.PRIMARY), (x_positions[i], y))
-        y += 40
+            txt = self.font_ui.render(h, True, COLORS.PRIMARY)
+            rect = txt.get_rect(center=(curr_x + col_widths[i]//2, y + row_h//2))
+            self.screen.blit(txt, rect)
+            curr_x += col_widths[i]
+            
+        y += row_h + 5
         
-        for g in recents:
-             ts = time.strftime("%H:%M", time.localtime(g['timestamp']))
-             w_val = g['winner']
-             if w_val == 1: winner = "P1 Win"
-             elif w_val == 2: winner = "P2 Win"
-             elif w_val == 0: winner = "Draw"
-             else: winner = "?"
-             
-             row = [ts, g['p1_name'], g['p2_name'], winner, f"{g['m']}x{g['n']} ({g['k']})", str(len(g.get('moves', [])))]
-             for i, d in enumerate(row):
-                 self.screen.blit(self.font_small.render(str(d)[:15], True, COLORS.TEXT), (x_positions[i], y))
-             y += 30
-             
-        self.btn_back.draw(self.screen)
+        for idx, g in enumerate(recents):
+            # Alternating Row Background
+            bg = COLORS.SURFACE if idx % 2 == 0 else COLORS.BACKGROUND
+            pygame.draw.rect(self.screen, bg, (start_x, y, total_w, row_h))
+            
+            ts = time.strftime("%H:%M", time.localtime(g.get('timestamp', 0)))
+            p1 = g.get('p1_name', 'P1')
+            p2 = g.get('p2_name', 'P2')
+            
+            w_val = g.get('winner', 0)
+            if w_val == 1: res = "1 - 0"
+            elif w_val == 2: res = "0 - 1"
+            elif w_val == 0: res = "1/2-1/2"
+            else: res = "?"
+            
+            size = f"{g.get('m')}x{g.get('n')} ({g.get('k')})"
+            moves = str(len(g.get('moves', [])))
+            
+            row_data = [ts, p1, p2, res, size, moves]
+            
+            curr_x = start_x
+            for i, d in enumerate(row_data):
+                col_w = col_widths[i]
+                color = COLORS.TEXT
+                if i == 3: # Result
+                    if w_val == 1: color = COLORS.PRIMARY
+                    elif w_val == 2: color = COLORS.SECONDARY
+                    else: color = COLORS.TEXT_DIM
+                    
+                d_str = str(d)
+                if len(d_str) > 20: d_str = d_str[:17] + "..."
+                
+                txt = self.font_small.render(d_str, True, color)
+                rect = txt.get_rect(center=(curr_x + col_w//2, y + row_h//2))
+                self.screen.blit(txt, rect)
+                curr_x += col_w
+            
+            y += row_h
+            y += row_h
+              
+        self.btn_hist_back.draw(self.screen)
+        self.btn_hist_reset.draw(self.screen)
         
+    def render_ratings(self):
+        title = self.font_title.render("BOT RATINGS", True, COLORS.ACCENT)
+        self.screen.blit(title, title.get_rect(center=(self.width // 2, 60)))
+        
+        # Data Preparation
+        levels = list(range(1, 9))
+        ratings = [self.elo_manager.get_rating(l) for l in levels]
+        
+        # Draw Graph Area
+        graph_w = 600
+        graph_h = 300
+        gx = (self.width - graph_w) // 2
+        gy = 150
+        
+        pygame.draw.rect(self.screen, COLORS.SURFACE, (gx, gy, graph_w, graph_h), border_radius=8)
+        pygame.draw.rect(self.screen, COLORS.TEXT_DIM, (gx, gy, graph_w, graph_h), 2, border_radius=8)
+        
+        # Axes Labels
+        y_max = max(max(ratings), 3000) + 100
+        y_min = min(min(ratings), 0) - 100
+        y_range = max(1, y_max - y_min)
+        
+        # Grid lines and Labels
+        for i in range(5):
+             y_val = y_min + i * (y_range / 4)
+             y_pos = gy + graph_h - ((y_val - y_min) / y_range * graph_h)
+             label = self.font_small.render(f"{int(y_val)}", True, COLORS.TEXT_DIM)
+             self.screen.blit(label, (gx - 40, y_pos - 10))
+             pygame.draw.line(self.screen, COLORS.HIGHLIGHT, (gx, y_pos), (gx + graph_w, y_pos), 1)
+
+        # Plot Points
+        points = []
+        for i, r in enumerate(ratings):
+             x_pos = gx + (i / (len(levels)-1)) * graph_w
+             y_pos = gy + graph_h - ((r - y_min) / y_range * graph_h)
+             points.append((x_pos, y_pos))
+             
+        # Connect Lines
+        if len(points) > 1:
+            pygame.draw.lines(self.screen, COLORS.PRIMARY, False, points, 3)
+            
+        # Draw Points and Values
+        for i, pos in enumerate(points):
+             pygame.draw.circle(self.screen, COLORS.ACCENT, (int(pos[0]), int(pos[1])), 6)
+             val_surf = self.font_small.render(str(ratings[i]), True, COLORS.TEXT_BRIGHT)
+             self.screen.blit(val_surf, (pos[0] - 15, pos[1] - 30))
+             
+             lvl_surf = self.font_small.render(f"Lvl {levels[i]}", True, COLORS.TEXT)
+             self.screen.blit(lvl_surf, (pos[0] - 20, gy + graph_h + 10))
+
+        self.btn_ratings_back.draw(self.screen)
+        self.btn_ratings_reset.draw(self.screen)
+
     def render_settings(self):
         title = self.font_title.render("SETTINGS", True, COLORS.ACCENT)
         self.screen.blit(title, title.get_rect(center=(self.width // 2, 80)))

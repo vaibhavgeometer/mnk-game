@@ -61,6 +61,7 @@ Challenge the computer with 4 distinct difficulty levels:
    ```
 
 3. **Run the Game**:
+
    ```bash
    python main.py
    ```
