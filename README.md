@@ -14,17 +14,14 @@ A highly customizable, advanced version of the m,n,k-game (generalized Tic Tac T
 
 ### 🤖 Advanced AI
 
-- **8 Difficulty Levels**: From random moves (Elo 0) to an unbeatable deep search engine (Elo 2500+).
+- **4 Difficulty Levels**:
+    - **Level 1**: Elo ~600 (Beginner)
+    - **Level 2**: Elo ~1200 (Intermediate)
+    - **Level 3**: Elo ~1800 (Advanced)
+    - **Level 4**: Max Strength (Deep Search)
 - **Modern Algorithms**: Powered by Minimax with Alpha-Beta Pruning, Iterative Deepening, and Zobrist Hashing.
 - **Transposition Table**: Efficiently caches board states to speed up decision-making.
-- **Opening Book**: Includes optimized opening moves for common board sizes (e.g., Gomoku, Tic-Tac-Toe).
-
-### � Tournament Mode
-
-- **Flexible Formats**: Supports **Round Robin** and **Knockout** tournament styles.
-- **Bot Battles**: Simulate tournaments with mixed Human/AI participants.
-- **Simultaneous Matches**: Watch multiple bot games play out in parallel.
-- **Standings**: Real-time leaderboard tracking wins, losses, and points.
+- **Opening Book**: Includes optimized opening moves for common board sizes.
 
 ### 📜 Game History
 
@@ -32,11 +29,11 @@ A highly customizable, advanced version of the m,n,k-game (generalized Tic Tac T
 - **Move Logs**: Detailed move-by-move history with Algebraic Notation (e.g., A1, B3).
 - **Review**: View past results including winner, time played, and board size.
 
-### �🎨 Modern Experience
+### 🎨 Modern Experience
 
 - **Sleek UI**: Clean interface with interactive sliders, real-time timer updates, and dynamic visuals.
-- **Audio Experience**: Procedural sound generation for game events (moves, wins) and background music support.
-- **Robustness**: Optimized for performance and stability.
+- **Procedural Audio**: Real-time sound generation for game events (moves, wins).
+- **Robustness**: Optimized for performance.
 
 ## Installation
 
@@ -44,7 +41,7 @@ A highly customizable, advanced version of the m,n,k-game (generalized Tic Tac T
 2. **Install dependencies**:
 
    ```bash
-   pip install -r requirements.txt
+   pip install pygame numpy
    ```
 
    _(Note: `numpy` is recommended for high-quality audio generation, but the game works without it.)_
@@ -62,7 +59,6 @@ python main.py
 - **Mouse Left Click**: Place pieces, select menu options, and adjust sliders.
 - **Menu Options**:
   - **Play**: Start a single game.
-  - **Tournament**: Setup and run a tournament.
   - **History**: View past game records.
   - **Settings**: Configure game rules.
 - **Settings**:
@@ -70,7 +66,6 @@ python main.py
   - **Win (K)**: Set number of connected pieces needed to win (up to 32).
   - **AI Levels**: Set strength for P1 and P2 separately (Level 0 = Human).
   - **Time/Increment**: Configure match timing.
-  - **Music**: Adjust volume.
 
 ## Credits
 
